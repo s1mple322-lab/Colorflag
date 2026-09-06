@@ -1,6 +1,5 @@
 -- ====================================================
--- GOBAARSCR15 - FLAG PREVIEW + HEX COMPLETO
--- Todos los países incluidos
+-- GOBAARSCR15 - FLAG + HEX (Versión estable)
 -- ====================================================
 
 local Players = game:GetService("Players")
@@ -9,9 +8,7 @@ local RS = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local PG = LP:WaitForChild("PlayerGui")
 
--- ====================================================
--- TABLA COMPLETA DE COLORES HEX
--- ====================================================
+-- Tabla completa de colores
 local FlagColors = {
     ["Afghanistan"] = {"#000000", "#D32011", "#007A36", "#FFFFFF"},
     ["Albania"] = {"#E41E20", "#000000"},
@@ -212,10 +209,12 @@ local FlagColors = {
     ["Zimbabwe"] = {"#006400", "#FFD200", "#D40000", "#000000", "#FFFFFF", "#00ADEF"},
 }
 
--- Limpiar GUI anterior
-if PG:FindFirstChild("GOBAARSCR15_FlagGUI") then
-    PG.GOBAARSCR15_FlagGUI:Destroy()
-end
+-- Limpiar GUI vieja
+pcall(function()
+    if PG:FindFirstChild("GOBAARSCR15_FlagGUI") then
+        PG.GOBAARSCR15_FlagGUI:Destroy()
+    end
+end)
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "GOBAARSCR15_FlagGUI"
@@ -223,20 +222,17 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = PG
 
--- Contenedor principal
+-- Panel principal
 local main = Instance.new("Frame")
-main.Name = "Main"
 main.Size = UDim2.new(0, 270, 0, 230)
 main.Position = UDim2.new(0, 20, 0.22, 0)
 main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-main.BackgroundTransparency = 0.12
+main.BackgroundTransparency = 0.1
 main.BorderSizePixel = 0
 main.Active = true
 main.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = main
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(0, 255, 150)
@@ -253,23 +249,18 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 17
 title.Parent = main
 
--- Imagen de la bandera
+-- Imagen
 local img = Instance.new("ImageLabel")
-img.Name = "FlagImage"
 img.Size = UDim2.new(0, 230, 0, 115)
 img.Position = UDim2.new(0.5, -115, 0, 38)
 img.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
-img.BackgroundTransparency = 0.25
+img.BackgroundTransparency = 0.3
 img.ScaleType = Enum.ScaleType.Fit
 img.Parent = main
+Instance.new("UICorner", img).CornerRadius = UDim.new(0, 8)
 
-local imgCorner = Instance.new("UICorner")
-imgCorner.CornerRadius = UDim.new(0, 8)
-imgCorner.Parent = img
-
--- Label de hex
+-- Hex label
 local hexLabel = Instance.new("TextLabel")
-hexLabel.Name = "HexLabel"
 hexLabel.Size = UDim2.new(1, -16, 0, 55)
 hexLabel.Position = UDim2.new(0, 8, 1, -60)
 hexLabel.BackgroundTransparency = 1
@@ -290,13 +281,11 @@ main.InputBegan:Connect(function(input)
         startPos = main.Position
     end
 end)
-
 main.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
-
 UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -304,21 +293,18 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- Detectar nombre
+-- Detectar nombre de la bandera
 local function getCurrentFlagName()
-    for _, guiObj in pairs(PG:GetChildren()) do
+    for _, guiObj in ipairs(PG:GetChildren()) do
         if guiObj:IsA("ScreenGui") and guiObj.Name \~= "GOBAARSCR15_FlagGUI" then
-            for _, v in pairs(guiObj:GetDescendants()) do
-                if v:IsA("TextLabel") and v.Visible and v.Text \~= "" then
+            for _, v in ipairs(guiObj:GetDescendants()) do
+                if v:IsA("TextLabel") and v.Visible and v.Text and v.Text \~= "" then
                     local txt = v.Text:gsub("%s+", " "):match("^%s*(.-)%s*$") or ""
-                    if #txt > 2 and #txt < 45 then
-                        for name, _ in pairs(FlagColors) do
+                    if #txt > 2 and #txt < 40 then
+                        for name in pairs(FlagColors) do
                             if txt:lower() == name:lower() or txt:lower():find(name:lower(), 1, true) then
                                 return name
                             end
-                        end
-                        if txt:match("^[A-ZÁÉÍÓÚ]") then
-                            return txt
                         end
                     end
                 end
@@ -328,44 +314,14 @@ local function getCurrentFlagName()
     return nil
 end
 
--- FlagsData
-local flagsData = {}
-pcall(function()
-    flagsData = require(game:GetService("ReplicatedStorage"):WaitForChild("FlagsData", 3)).List
-end)
-
 local lastName = ""
 RS.RenderStepped:Connect(function()
     local name = getCurrentFlagName()
-    
     if name and name \~= lastName then
         lastName = name
-        
-        local imgId = nil
-        for _, f in pairs(flagsData) do
-            if f.Name and (f.Name:lower() == name:lower() or name:lower():find(f.Name:lower(), 1, true)) then
-                imgId = f.ImageId
-                break
-            end
-        end
-        
-        if imgId then
-            img.Image = "rbxassetid://" .. tostring(imgId)
-        end
-        
         local colors = FlagColors[name]
-        if not colors then
-            for k, v in pairs(FlagColors) do
-                if k:lower():find(name:lower(), 1, true) or name:lower():find(k:lower(), 1, true) then
-                    colors = v
-                    break
-                end
-            end
-        end
-        
         if colors then
             hexLabel.Text = name .. "\n" .. table.concat(colors, "   ")
-            pcall(function() setclipboard(table.concat(colors, " ")) end)
         else
             hexLabel.Text = name .. "\n(sin colores)"
         end
@@ -382,10 +338,7 @@ toggle.TextColor3 = Color3.fromRGB(0, 255, 150)
 toggle.Font = Enum.Font.GothamBold
 toggle.TextSize = 15
 toggle.Parent = gui
-
-local tCorner = Instance.new("UICorner")
-tCorner.CornerRadius = UDim.new(1, 0)
-tCorner.Parent = toggle
+Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
 
 local tStroke = Instance.new("UIStroke")
 tStroke.Color = Color3.fromRGB(0, 255, 150)
@@ -396,4 +349,4 @@ toggle.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
 end)
 
-print("✅ GOBAARSCR15 Flag + HEX COMPLETO cargado")
+print("GOBAARSCR15 Flag + HEX cargado correctamente")
