@@ -1,10 +1,9 @@
 -- ====================================================
--- GOBAARSCR15 - FLAG + HEX (Versión estable)
+-- GOBAARSCR15 - FLAG HEX LOOKUP (Versión simple y estable)
 -- ====================================================
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local PG = LP:WaitForChild("PlayerGui")
 
@@ -209,30 +208,32 @@ local FlagColors = {
     ["Zimbabwe"] = {"#006400", "#FFD200", "#D40000", "#000000", "#FFFFFF", "#00ADEF"},
 }
 
--- Limpiar GUI vieja
+-- Limpiar GUI anterior
 pcall(function()
-    if PG:FindFirstChild("GOBAARSCR15_FlagGUI") then
-        PG.GOBAARSCR15_FlagGUI:Destroy()
-    end
+    local old = PG:FindFirstChild("GOBAARSCR15_FlagGUI")
+    if old then old:Destroy() end
 end)
 
+-- Crear GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "GOBAARSCR15_FlagGUI"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 999
 gui.Parent = PG
 
--- Panel principal
+-- Frame principal
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 270, 0, 230)
-main.Position = UDim2.new(0, 20, 0.22, 0)
-main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-main.BackgroundTransparency = 0.1
+main.Size = UDim2.new(0, 320, 0, 260)
+main.Position = UDim2.new(0, 30, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
 main.BorderSizePixel = 0
 main.Active = true
 main.Parent = gui
 
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 14)
+corner.Parent = main
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(0, 255, 150)
@@ -241,38 +242,117 @@ stroke.Parent = main
 
 -- Título
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
+title.Size = UDim2.new(1, 0, 0, 36)
 title.BackgroundTransparency = 1
-title.Text = "FLAG + HEX"
+title.Text = "FLAG HEX LOOKUP"
 title.TextColor3 = Color3.fromRGB(0, 255, 150)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 17
+title.TextSize = 18
 title.Parent = main
 
--- Imagen
-local img = Instance.new("ImageLabel")
-img.Size = UDim2.new(0, 230, 0, 115)
-img.Position = UDim2.new(0.5, -115, 0, 38)
-img.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
-img.BackgroundTransparency = 0.3
-img.ScaleType = Enum.ScaleType.Fit
-img.Parent = main
-Instance.new("UICorner", img).CornerRadius = UDim.new(0, 8)
+-- TextBox para escribir el país
+local box = Instance.new("TextBox")
+box.Size = UDim2.new(1, -30, 0, 40)
+box.Position = UDim2.new(0, 15, 0, 50)
+box.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+box.TextColor3 = Color3.fromRGB(255, 255, 255)
+box.PlaceholderText = "Escribí el país (ej: Finland)"
+box.PlaceholderColor3 = Color3.fromRGB(140, 140, 140)
+box.Font = Enum.Font.Gotham
+box.TextSize = 16
+box.Text = ""
+box.ClearTextOnFocus = false
+box.Parent = main
 
--- Hex label
-local hexLabel = Instance.new("TextLabel")
-hexLabel.Size = UDim2.new(1, -16, 0, 55)
-hexLabel.Position = UDim2.new(0, 8, 1, -60)
-hexLabel.BackgroundTransparency = 1
-hexLabel.Text = "Esperando bandera..."
-hexLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-hexLabel.Font = Enum.Font.Code
-hexLabel.TextSize = 14
-hexLabel.TextWrapped = true
-hexLabel.TextXAlignment = Enum.TextXAlignment.Center
-hexLabel.Parent = main
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 8)
+boxCorner.Parent = box
 
--- Drag
+-- Botón Buscar
+local searchBtn = Instance.new("TextButton")
+searchBtn.Size = UDim2.new(1, -30, 0, 40)
+searchBtn.Position = UDim2.new(0, 15, 0, 100)
+searchBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+searchBtn.Text = "BUSCAR HEX"
+searchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBtn.Font = Enum.Font.GothamBold
+searchBtn.TextSize = 16
+searchBtn.Parent = main
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = searchBtn
+
+-- Resultado
+local result = Instance.new("TextLabel")
+result.Size = UDim2.new(1, -30, 0, 80)
+result.Position = UDim2.new(0, 15, 0, 155)
+result.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+result.TextColor3 = Color3.fromRGB(0, 255, 150)
+result.Font = Enum.Font.Code
+result.TextSize = 15
+result.Text = "Escribí un país y apretá Buscar"
+result.TextWrapped = true
+result.TextXAlignment = Enum.TextXAlignment.Center
+result.TextYAlignment = Enum.TextYAlignment.Center
+result.Parent = main
+
+local resCorner = Instance.new("UICorner")
+resCorner.CornerRadius = UDim.new(0, 8)
+resCorner.Parent = result
+
+-- Función de búsqueda
+local function buscar()
+    local input = box.Text:gsub("^%s*(.-)%s*$", "%1") -- trim
+    if input == "" then
+        result.Text = "Escribí un nombre de país"
+        return
+    end
+
+    local found = nil
+    local foundName = nil
+
+    -- Búsqueda exacta
+    for name, colors in pairs(FlagColors) do
+        if name:lower() == input:lower() then
+            found = colors
+            foundName = name
+            break
+        end
+    end
+
+    -- Búsqueda parcial si no encontró exacto
+    if not found then
+        for name, colors in pairs(FlagColors) do
+            if name:lower():find(input:lower(), 1, true) then
+                found = colors
+                foundName = name
+                break
+            end
+        end
+    end
+
+    if found then
+        result.Text = foundName .. "\n" .. table.concat(found, "   ")
+        -- Intentar copiar al portapapeles
+        pcall(function()
+            if setclipboard then
+                setclipboard(table.concat(found, " "))
+            end
+        end)
+    else
+        result.Text = "No encontré \"" .. input .. "\"\nProbá con el nombre en inglés"
+    end
+end
+
+searchBtn.MouseButton1Click:Connect(buscar)
+box.FocusLost:Connect(function(enter)
+    if enter then
+        buscar()
+    end
+end)
+
+-- Drag del panel
 local dragging, dragStart, startPos
 main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -281,11 +361,13 @@ main.InputBegan:Connect(function(input)
         startPos = main.Position
     end
 end)
+
 main.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
+
 UIS.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -293,60 +375,23 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- Detectar nombre de la bandera
-local function getCurrentFlagName()
-    for _, guiObj in ipairs(PG:GetChildren()) do
-        if guiObj:IsA("ScreenGui") and guiObj.Name \~= "GOBAARSCR15_FlagGUI" then
-            for _, v in ipairs(guiObj:GetDescendants()) do
-                if v:IsA("TextLabel") and v.Visible and v.Text and v.Text \~= "" then
-                    local txt = v.Text:gsub("%s+", " "):match("^%s*(.-)%s*$") or ""
-                    if #txt > 2 and #txt < 40 then
-                        for name in pairs(FlagColors) do
-                            if txt:lower() == name:lower() or txt:lower():find(name:lower(), 1, true) then
-                                return name
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
+-- Botón para cerrar/ocultar
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 32, 0, 32)
+closeBtn.Position = UDim2.new(1, -40, 0, 6)
+closeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.Parent = main
 
-local lastName = ""
-RS.RenderStepped:Connect(function()
-    local name = getCurrentFlagName()
-    if name and name \~= lastName then
-        lastName = name
-        local colors = FlagColors[name]
-        if colors then
-            hexLabel.Text = name .. "\n" .. table.concat(colors, "   ")
-        else
-            hexLabel.Text = name .. "\n(sin colores)"
-        end
-    end
-end)
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
 
--- Botón toggle
-local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(0, 52, 0, 52)
-toggle.Position = UDim2.new(0, 20, 0.13, 0)
-toggle.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-toggle.Text = "HEX"
-toggle.TextColor3 = Color3.fromRGB(0, 255, 150)
-toggle.Font = Enum.Font.GothamBold
-toggle.TextSize = 15
-toggle.Parent = gui
-Instance.new("UICorner", toggle).CornerRadius = UDim.new(1, 0)
-
-local tStroke = Instance.new("UIStroke")
-tStroke.Color = Color3.fromRGB(0, 255, 150)
-tStroke.Thickness = 2.5
-tStroke.Parent = toggle
-
-toggle.MouseButton1Click:Connect(function()
+closeBtn.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
 end)
 
-print("GOBAARSCR15 Flag + HEX cargado correctamente")
+print("✅ GOBAARSCR15 Flag Hex Lookup listo")
